@@ -5,20 +5,99 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { CopilotClient, approveAll } from '@github/copilot-sdk';
+
+interface CopilotClientConfig {
+	serverUrl?: string;
+	githubToken?: string;
+	openaiApiKey?: string;
+	azureOpenaiApiKey?: string;
+	azureOpenaiEndpoint?: string;
+	anthropicApiKey?: string;
+}
+
+interface CredentialsWithAuth {
+	cliUrl?: string;
+	authMode?: string;
+	githubToken?: string;
+	openaiApiKey?: string;
+	azureOpenaiApiKey?: string;
+	azureOpenaiEndpoint?: string;
+	anthropicApiKey?: string;
+}
+
+function buildCopilotClientConfig(credentials: CredentialsWithAuth): CopilotClientConfig {
+	const config: CopilotClientConfig = {};
+
+	if (credentials.cliUrl) {
+		config.serverUrl = credentials.cliUrl;
+	}
+
+	const authMode = credentials.authMode || 'github_token';
+
+	switch (authMode) {
+		case 'github_token': {
+			if (!credentials.githubToken) {
+				const error = new Error('GitHub token is required for GitHub Token auth mode');
+				error.name = 'NodeOperationError';
+				throw error;
+			}
+			config.githubToken = credentials.githubToken;
+			break;
+		}
+		case 'server_token':
+			// No credentials needed - server's environment token is used
+			break;
+		case 'byok_openai': {
+			if (!credentials.openaiApiKey) {
+				const error = new Error('OpenAI API key is required for BYOK-OpenAI mode');
+				error.name = 'NodeOperationError';
+				throw error;
+			}
+			config.openaiApiKey = credentials.openaiApiKey;
+			break;
+		}
+		case 'byok_azure_openai': {
+			if (!credentials.azureOpenaiApiKey) {
+				const error = new Error('Azure OpenAI API key is required for BYOK-Azure mode');
+				error.name = 'NodeOperationError';
+				throw error;
+			}
+			if (!credentials.azureOpenaiEndpoint) {
+				const error = new Error('Azure OpenAI endpoint is required for BYOK-Azure mode');
+				error.name = 'NodeOperationError';
+				throw error;
+			}
+			config.azureOpenaiApiKey = credentials.azureOpenaiApiKey;
+			config.azureOpenaiEndpoint = credentials.azureOpenaiEndpoint;
+			break;
+		}
+		case 'byok_anthropic': {
+			if (!credentials.anthropicApiKey) {
+				const error = new Error('Anthropic API key is required for BYOK-Anthropic mode');
+				error.name = 'NodeOperationError';
+				throw error;
+			}
+			config.anthropicApiKey = credentials.anthropicApiKey;
+			break;
+		}
+		default: {
+			const error = new Error(`Unknown authentication mode: ${authMode}`);
+			error.name = 'NodeOperationError';
+			throw error;
+		}
+	}
+
+	return config;
+}
 
 // Standalone implementation for model options (called by the node method)
 async function getModelOptionsImpl(this: ILoadOptionsFunctions) {
 	try {
 		const credentials = await this.getCredentials('copilotAgentApi');
-		const githubToken = credentials.githubToken as string;
-
-		if (!githubToken) {
-			throw new Error('GitHub token not found in credentials');
-		}
-
-		const client = new CopilotClient({ githubToken });
+		const config = buildCopilotClientConfig(credentials as CredentialsWithAuth);
+		const client = new CopilotClient(config);
 
 		try {
 			await client.start();
@@ -104,21 +183,18 @@ export class CopilotAgent implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 
 		let credentials;
-		let githubToken: string;
+		let config: CopilotClientConfig;
 
 		try {
 			credentials = await this.getCredentials('copilotAgentApi');
-			githubToken = credentials.githubToken as string;
-
-			if (!githubToken) {
-				throw new Error('GitHub token is not provided in credentials');
-			}
+			config = buildCopilotClientConfig(credentials as CredentialsWithAuth);
 		} catch (error) {
-			throw new Error(`Failed to retrieve credentials: ${(error as Error).message}`);
+			const operationError = new NodeOperationError(this.getNode(), `Failed to retrieve credentials: ${(error as Error).message}`);
+			throw operationError;
 		}
 
 		const model = this.getNodeParameter('model', 0) as string;
-		const client = new CopilotClient({ githubToken });
+		const client = new CopilotClient(config);
 
 		try {
 			// Start the client (required by SDK)

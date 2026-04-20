@@ -1,265 +1,325 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# n8n-nodes-copilot-agent
 
-# n8n-nodes-starter
+A custom n8n node that integrates GitHub Copilot and other LLMs into your n8n workflows using the [GitHub Copilot SDK](https://github.com/github/copilot-sdk).
 
-This starter repository helps you build custom integrations for [n8n](https://n8n.io). It includes example nodes, credentials, the node linter, and all the tooling you need to get started.
+## Features
+
+- **GitHub Copilot** - Use GitHub Copilot models directly in your workflows
+- **Bring Your Own Key (BYOK)** - Use OpenAI, Azure OpenAI, or Anthropic API keys instead
+- **Local or Remote CLI** - Spawn CLI locally or connect to a remote CLI server
+- **Session Context** - Maintains conversation history across multiple prompts
+- **Multiple Models** - Support for GPT-5, Claude Sonnet 4.5, GPT-4.1, and more
+
+## Installation
+
+Install the node via npm:
+
+```bash
+npm install n8n-nodes-copilot-agent
+```
+
+Or clone and build from source:
+
+```bash
+git clone https://github.com/yourusername/n8n-nodes-copilot-agent.git
+cd n8n-nodes-copilot-agent
+npm install
+npm run build
+```
 
 ## Quick Start
 
-> [!TIP]
-> **New to building n8n nodes?** The fastest way to get started is with `npm create @n8n/node`. This command scaffolds a complete node package for you using the [@n8n/node-cli](https://www.npmjs.com/package/@n8n/node-cli).
+1. Create a new workflow in n8n
+2. Add the "Copilot Agent" node
+3. Configure credentials (see [Authentication](#authentication) below)
+4. Set the model and enter your prompt
+5. Execute the workflow
 
-**To create a new node package from scratch:**
+## Authentication
 
+The node supports four authentication modes. Choose the one that fits your deployment:
+
+### 1. GitHub Token (Per-User)
+
+**Best for:** Small teams, per-user billing, individual Copilot subscriptions
+
+The most straightforward option. Each user provides their own GitHub Personal Access Token.
+
+**Setup:**
+1. Go to https://github.com/settings/tokens
+2. Generate a new Personal Access Token (classic or fine-grained) with `copilot` scope
+3. In the credential, select **Authentication Mode** → "GitHub Token (Per-User)"
+4. Paste your token in the "GitHub Personal Access Token" field
+5. Leave "CLI Server URL" empty to spawn CLI locally (default)
+
+**Pros:**
+- No server setup required
+- Per-user billing and attribution
+- Works out-of-the-box for local development
+
+**Cons:**
+- Token stored in n8n (requires secure credential storage)
+- Not suitable for large-scale shared deployments
+
+### 2. Server Token (Shared Service Account)
+
+**Best for:** Self-hosted n8n, shared deployments, service accounts
+
+Connect to a remote or local CLI server that already has an API token in its environment variable. No credentials are passed—the server's token is used automatically.
+
+**Setup:**
+1. Start a Copilot CLI server with a token in the environment:
+   ```bash
+   export GITHUB_TOKEN=your_token_here
+   copilot-cli --server 0.0.0.0:8080
+   ```
+2. In the credential, select **Authentication Mode** → "Server Token (Shared Service Account)"
+3. Set "CLI Server URL" to your server address (e.g., `localhost:8080` or `copilot-server:8080`)
+4. No other fields need to be filled
+5. The node connects and the server's environment token is used
+
+**Pros:**
+- Single shared token for all users
+- Credentials never stored in n8n
+- Scales across multiple n8n workers
+
+**Cons:**
+- Requires external CLI server
+- No per-user billing/attribution
+- Network must be secure (see [Network Security](#network-security) below)
+
+### 3. BYOK — OpenAI
+
+**Best for:** Organizations using their own OpenAI subscription
+
+Use your own OpenAI API key instead of GitHub Copilot.
+
+**Setup:**
+1. Get your API key from https://platform.openai.com/account/api-keys
+2. In the credential, select **Authentication Mode** → "BYOK — OpenAI"
+3. Enter your OpenAI API key in the "OpenAI API Key" field
+4. No CLI URL or GitHub token needed
+5. (Optional) If using a remote CLI server configured for OpenAI, set "CLI Server URL"
+
+**Pros:**
+- No GitHub Copilot subscription required
+- Direct access to OpenAI models
+- Full control over billing
+
+**Cons:**
+- Requires OpenAI subscription
+- OpenAI API key stored in n8n (requires secure credential storage)
+
+### 4. BYOK — Azure OpenAI
+
+**Best for:** Enterprise environments with Azure
+
+Use your Azure OpenAI service instead of GitHub Copilot.
+
+**Setup:**
+1. Set up an Azure OpenAI resource in your Azure account
+2. Get your API key and endpoint from Azure Portal
+3. In the credential, select **Authentication Mode** → "BYOK — Azure OpenAI"
+4. Enter your API key in "Azure OpenAI API Key"
+5. Enter your endpoint (e.g., `https://my-resource.openai.azure.com`) in "Azure OpenAI Endpoint"
+6. (Optional) If using a remote CLI server, set "CLI Server URL"
+
+**Pros:**
+- Enterprise-grade security and compliance
+- Works within Azure VNets
+- No GitHub Copilot subscription required
+
+**Cons:**
+- Requires Azure account setup
+- Credentials stored in n8n
+- More complex infrastructure
+
+### 5. BYOK — Anthropic
+
+**Best for:** Organizations using Claude / Anthropic API
+
+Use Anthropic's Claude models via the Anthropic API.
+
+**Setup:**
+1. Get your API key from https://console.anthropic.com
+2. In the credential, select **Authentication Mode** → "BYOK — Anthropic"
+3. Enter your Anthropic API key in the "Anthropic API Key" field
+4. No CLI URL or GitHub token needed
+
+**Pros:**
+- Direct access to Claude models
+- No GitHub Copilot subscription required
+- Full control over billing
+
+**Cons:**
+- Requires Anthropic subscription
+- Anthropic API key stored in n8n
+
+## Local vs. Remote CLI
+
+### Local CLI (Default)
+
+When you leave **CLI Server URL** empty, the node spawns a local Copilot CLI subprocess automatically. This is the default and simplest option.
+
+**Use for:**
+- Local development
+- Single-user workflows
+- Desktop n8n instances
+
+### Remote CLI Server
+
+Set **CLI Server URL** to connect to a remote CLI server instead. Useful for scaled deployments.
+
+**Use for:**
+- Self-hosted n8n with multiple workers
+- Shared CLI infrastructure
+- Docker Compose / Kubernetes deployments
+
+**Example setup (Docker):**
 ```bash
-npm create @n8n/node
+docker run -d \
+  -e GITHUB_TOKEN=your_token_here \
+  -p 8080:8080 \
+  your-copilot-cli-image --server 0.0.0.0:8080
 ```
 
-**Already using this starter? Start developing with:**
+Then set **CLI Server URL** to `copilot-server:8080` (or your server's address).
 
-```bash
-npm run dev
+## Network Security ⚠️
+
+**CRITICAL:** The TCP connection between n8n and a remote CLI server is **unauthenticated** and transmits prompts and responses in plaintext.
+
+### Protection Requirements
+
+1. **Private Network Only**: Run the CLI server and n8n on the same private network:
+   - Same Docker Compose network
+   - Same Kubernetes pod network
+   - Same VPC / private subnet
+   - Corporate VPN or bastion host
+
+2. **Never Expose Publicly**: Do NOT:
+   - Expose CLI server port to the internet
+   - Make CLI server accessible from untrusted networks
+   - Route traffic through public internet without VPN/TLS
+
+3. **Network Isolation**: Use firewall rules to restrict access:
+   ```bash
+   # Example: Allow only from n8n pod
+   iptables -A INPUT -i docker0 -p tcp --dport 8080 -j ACCEPT
+   iptables -A INPUT -p tcp --dport 8080 -j DROP
+   ```
+
+4. **Alternative**: If you need remote access, use:
+   - SSH port forwarding: `ssh -L 8080:localhost:8080 user@remote-host`
+   - VPN tunnel
+   - mTLS wrapper (not built-in)
+
+## Configuration Examples
+
+### Example 1: Local GitHub Token
+```json
+{
+  "authMode": "github_token",
+  "githubToken": "github_pat_xxxxxxxxxxxx",
+  "cliUrl": ""
+}
 ```
 
-This starts n8n with your nodes loaded and hot reload enabled.
-
-## What's Included
-
-This starter repository includes two example nodes to learn from:
-
-- **[Example Node](nodes/Example/)** - A simple starter node that shows the basic structure with a custom `execute` method
-- **[GitHub Issues Node](nodes/GithubIssues/)** - A complete, production-ready example built using the **declarative style**:
-  - **Low-code approach** - Define operations declaratively without writing request logic
-  - Multiple resources (Issues, Comments)
-  - Multiple operations (Get, Get All, Create)
-  - Two authentication methods (OAuth2 and Personal Access Token)
-  - List search functionality for dynamic dropdowns
-  - Proper error handling and typing
-  - Ideal for HTTP API-based integrations
-
-> [!TIP]
-> The declarative/low-code style (used in GitHub Issues) is the recommended approach for building nodes that interact with HTTP APIs. It significantly reduces boilerplate code and handles requests automatically.
-
-Browse these examples to understand both approaches, then modify them or create your own.
-
-## Finding Inspiration
-
-Looking for more examples? Check out these resources:
-
-- **[npm Community Nodes](https://www.npmjs.com/search?q=keywords:n8n-community-node-package)** - Browse thousands of community-built nodes on npm using the `n8n-community-node-package` tag
-- **[n8n Built-in Nodes](https://github.com/n8n-io/n8n/tree/master/packages/nodes-base/nodes)** - Study the source code of n8n's official nodes for production-ready patterns and best practices
-- **[n8n Credentials](https://github.com/n8n-io/n8n/tree/master/packages/nodes-base/credentials)** - See how authentication is implemented for various services
-
-These are excellent resources to understand how to structure your nodes, handle different API patterns, and implement advanced features.
-
-## Prerequisites
-
-Before you begin, install the following on your development machine:
-
-### Required
-
-- **[Node.js](https://nodejs.org/)** (v22 or higher) and npm
-  - Linux/Mac/WSL: Install via [nvm](https://github.com/nvm-sh/nvm)
-  - Windows: Follow [Microsoft's NodeJS guide](https://learn.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows)
-- **[git](https://git-scm.com/downloads)**
-
-### Recommended
-
-- Follow n8n's [development environment setup guide](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/)
-
-> [!NOTE]
-> The `@n8n/node-cli` is included as a dev dependency and will be installed automatically when you run `npm install`. The CLI includes n8n for local development, so you don't need to install n8n globally.
-
-## Getting Started with this Starter
-
-Follow these steps to create your own n8n community node package:
-
-### 1. Create Your Repository
-
-[Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template, then clone it:
-
-```bash
-git clone https://github.com/<your-organization>/<your-repo-name>.git
-cd <your-repo-name>
+### Example 2: Remote Service Account
+```json
+{
+  "authMode": "server_token",
+  "cliUrl": "copilot-server:8080"
+}
 ```
 
-### 2. Install Dependencies
-
-```bash
-npm install
+### Example 3: OpenAI via Local CLI
+```json
+{
+  "authMode": "byok_openai",
+  "openaiApiKey": "sk-xxxxxxxxxxxx",
+  "cliUrl": ""
+}
 ```
 
-This installs all required dependencies including the `@n8n/node-cli`.
-
-### 3. Explore the Examples
-
-Browse the example nodes in [nodes/](nodes/) and [credentials/](credentials/) to understand the structure:
-
-- Start with [nodes/Example/](nodes/Example/) for a basic node
-- Study [nodes/GithubIssues/](nodes/GithubIssues/) for a real-world implementation
-
-### 4. Build Your Node
-
-Edit the example nodes to fit your use case, or create new node files by copying the structure from [nodes/Example/](nodes/Example/).
-
-> [!TIP]
-> If you want to scaffold a completely new node package, use `npm create @n8n/node` to start fresh with the CLI's interactive generator.
-
-### 5. Configure Your Package
-
-Update `package.json` with your details:
-
-- `name` - Your package name (must start with `n8n-nodes-`)
-- `author` - Your name and email
-- `repository` - Your repository URL
-- `description` - What your node does
-
-Make sure your node is registered in the `n8n.nodes` array.
-
-### 6. Develop and Test Locally
-
-Start n8n with your node loaded:
-
-```bash
-npm run dev
+### Example 4: Azure OpenAI via Remote Server
+```json
+{
+  "authMode": "byok_azure_openai",
+  "azureOpenaiApiKey": "xxxxxxxxxxxx",
+  "azureOpenaiEndpoint": "https://my-resource.openai.azure.com",
+  "cliUrl": "azure-copilot:8080"
+}
 ```
 
-This command runs `n8n-node dev` which:
+## Node Usage
 
-- Builds your node with watch mode
-- Starts n8n with your node available
-- Automatically rebuilds when you make changes
-- Opens n8n in your browser (usually http://localhost:5678)
+### Inputs
+- **Model**: Select the AI model to use (GPT-5, Claude Sonnet 4.5, GPT-4.1, etc.)
+- **Prompt**: The message to send to the selected model
 
-You can now test your node in n8n workflows!
+### Outputs
+- **success**: Boolean indicating if the request succeeded
+- **response**: The model's response text
+- **sessionId**: The session ID (useful for debugging or session tracking)
+- **error**: Error message if the request failed
 
-> [!NOTE]
-> This repository automatically patches `@n8n/node-cli` during `npm install` and before `npm run dev` to pin the local n8n runtime to `n8n@2.15.0`. This works around the current upstream dev-mode bug without requiring a manual edit inside `node_modules`.
+### Session Context
 
-> [!NOTE]
-> Learn more about CLI commands in the [@n8n/node-cli documentation](https://www.npmjs.com/package/@n8n/node-cli).
+The node maintains a single session across all input items in a batch. This means:
+- First item: Starts a new conversation
+- Subsequent items: Same conversation context (history is preserved)
+- Last item: Session is automatically cleaned up
 
-### 7. Lint Your Code
+This is useful for multi-turn conversations within a single workflow run.
 
-Check for errors:
+## Development
 
-```bash
-npm run lint
-```
-
-Auto-fix issues when possible:
-
-```bash
-npm run lint:fix
-```
-
-### 8. Build for Production
-
-When ready to publish:
-
+### Build
 ```bash
 npm run build
 ```
 
-This compiles your TypeScript code to the `dist/` folder.
-
-### 9. Prepare for Publishing
-
-Before publishing:
-
-1. **Update documentation**: Replace this README with your node's documentation. Use [README_TEMPLATE.md](README_TEMPLATE.md) as a starting point.
-2. **Update the LICENSE**: Add your details to the [LICENSE](LICENSE.md) file.
-3. **Test thoroughly**: Ensure your node works in different scenarios.
-
-### 10. Publish to npm
-
-Publishing is handled automatically by the included GitHub Actions workflow ([.github/workflows/publish.yml](.github/workflows/publish.yml)). It runs on every version tag push and publishes to npm with a provenance attestation — a requirement for n8n community nodes starting May 1, 2026.
-
-#### One-time setup
-
-Configure npm to trust this repository's GitHub Actions workflow so it can publish on your behalf. Log in to [npmjs.com](https://npmjs.com), open your package settings, and under **Publish access → Trusted Publishers** add a publisher with:
-
-- **Repository owner**: your GitHub username or org
-- **Repository name**: your repo name
-- **Workflow name**: `publish.yml`
-
-No token or secret needs to be stored in GitHub — the workflow uses GitHub's OIDC token instead.
-
-> [!NOTE]
-> If you prefer a traditional npm token, create a Granular Access Token on npmjs.com and store it as `NPM_TOKEN` in your repository's Actions secrets. See the comments at the top of `.github/workflows/publish.yml` for details.
-
-#### Releasing a new version
-
+### Develop with Hot Reload
 ```bash
-npm run release
+npm run dev
 ```
 
-This lints, builds, prompts for a version bump, updates the changelog, commits, tags, and pushes — which triggers the workflow to publish to npm.
+This starts n8n with the node loaded and watches for changes.
 
-### 11. Submit for Verification (Optional)
-
-Get your node verified for n8n Cloud:
-
-1. Ensure your node meets the [requirements](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/):
-   - Uses MIT license ✅ (included in this starter)
-   - No external package dependencies
-   - Follows n8n's design guidelines
-   - Passes quality and security review
-
-2. Submit through the [n8n Creator Portal](https://creators.n8n.io/nodes)
-
-**Benefits of verification:**
-
-- Available directly in n8n Cloud
-- Discoverable in the n8n nodes panel
-- Verified badge for quality assurance
-- Increased visibility in the n8n community
-
-## Available Scripts
-
-This starter includes several npm scripts to streamline development:
-
-| Script                | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `npm run dev`         | Start n8n with your node and watch for changes (runs `n8n-node dev`)        |
-| `npm run build`       | Compile TypeScript to JavaScript for production (runs `n8n-node build`)     |
-| `npm run build:watch` | Build in watch mode (auto-rebuild on changes)                               |
-| `npm run lint`        | Check your code for errors and style issues (runs `n8n-node lint`)          |
-| `npm run lint:fix`    | Automatically fix linting issues when possible (runs `n8n-node lint --fix`) |
-| `npm run release`     | Create a new release (runs `n8n-node release`)                              |
-
-> [!TIP]
-> These scripts use the [@n8n/node-cli](https://www.npmjs.com/package/@n8n/node-cli) under the hood. You can also run CLI commands directly, e.g., `npx n8n-node dev`.
+### Lint
+```bash
+npm run lint
+npm run lint:fix
+```
 
 ## Troubleshooting
 
-### My node doesn't appear in n8n
+### "GitHub token is not provided"
+- Check that you've selected "GitHub Token (Per-User)" auth mode and provided a token
+- Verify the token has `copilot` scope
 
-1. Make sure you ran `npm install` to install dependencies
-2. Check that your node is listed in `package.json` under `n8n.nodes`
-3. Restart the dev server with `npm run dev`
-4. Check the console for any error messages
+### "Failed to connect to CLI server"
+- Verify the CLI Server URL is correct
+- Check network connectivity: `telnet host port`
+- Ensure the CLI server is running
 
-### Linting errors
+### "Anthropic API key is required"
+- You've selected "BYOK — Anthropic" but didn't provide an API key
+- Get a key from https://console.anthropic.com
 
-Run `npm run lint:fix` to automatically fix most common issues. For remaining errors, check the [n8n node development guidelines](https://docs.n8n.io/integrations/creating-nodes/).
+### Session or model errors
+- Check that the selected model is available for your authentication method
+- Review the node execution logs for detailed error messages
 
-### TypeScript errors
+## References
 
-Make sure you're using Node.js v22 or higher and have run `npm install` to get all type definitions.
-
-## Resources
-
-- **[n8n Node Documentation](https://docs.n8n.io/integrations/creating-nodes/)** - Complete guide to building nodes
-- **[n8n Community Forum](https://community.n8n.io/)** - Get help and share your nodes
-- **[@n8n/node-cli Documentation](https://www.npmjs.com/package/@n8n/node-cli)** - CLI tool reference
-- **[n8n Creator Portal](https://creators.n8n.io/nodes)** - Submit your node for verification
-- **[Submit Community Nodes Guide](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/)** - Verification requirements and process
-
-## Contributing
-
-Have suggestions for improving this starter? [Open an issue](https://github.com/n8n-io/n8n-nodes-starter/issues) or submit a pull request!
+- [GitHub Copilot SDK Documentation](https://github.com/github/copilot-sdk)
+- [n8n Node Development Guide](https://docs.n8n.io/integrations/creating-nodes/)
+- [OpenAI API Documentation](https://platform.openai.com/docs)
+- [Azure OpenAI Service Documentation](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/)
+- [Anthropic API Documentation](https://docs.anthropic.com)
 
 ## License
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+[MIT](LICENSE.md)
