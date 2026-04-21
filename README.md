@@ -184,7 +184,7 @@ Then set **CLI Server URL** to `copilot-server:8080` (or your server's address).
 - **success**: Boolean indicating if the request succeeded
 - **response**: The model's response text
 - **sessionId**: The session ID (useful for debugging or session tracking)
-- **error**: Error message if the request failed (empty string on success)
+- **error**: Error message if the request failed (omitted on success)
 
 ### Session Isolation
 

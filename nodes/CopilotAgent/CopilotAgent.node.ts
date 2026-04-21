@@ -279,11 +279,19 @@ export class CopilotAgent implements INodeType {
 
 		try {
 			credentials = await this.getCredentials('copilotAgentApi');
-			config = buildCopilotClientConfig(credentials as CredentialsWithAuth);
 		} catch (error) {
 			throw new NodeOperationError(
 				this.getNode(),
 				`Failed to retrieve credentials: ${(error as Error).message}`,
+			);
+		}
+
+		try {
+			config = buildCopilotClientConfig(credentials as CredentialsWithAuth);
+		} catch (error) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Invalid credentials configuration: ${(error as Error).message}`,
 			);
 		}
 
