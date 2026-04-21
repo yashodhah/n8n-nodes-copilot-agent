@@ -1,0 +1,23 @@
+FROM node:22-alpine AS custom-node-builder
+
+WORKDIR /src
+COPY . .
+
+RUN npm ci
+RUN npm run build
+RUN npm pack --pack-destination /tmp
+
+FROM n8nio/n8n:latest
+
+USER root
+
+ENV N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
+ENV N8N_COMMUNITY_PACKAGES_ENABLED=true
+
+COPY --from=custom-node-builder /tmp/n8n-nodes-copilot-agent-*.tgz /tmp/
+
+RUN mkdir -p /home/node/.n8n/custom \
+	&& npm install --omit=dev --omit=peer --legacy-peer-deps --no-package-lock --prefix /home/node/.n8n/custom /tmp/n8n-nodes-copilot-agent-*.tgz \
+	&& chown -R node:node /home/node/.n8n
+
+USER node

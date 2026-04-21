@@ -1,17 +1,32 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const sharpWasmPackagePath = path.join(
-	__dirname,
-	'..',
-	'node_modules',
-	'@github',
-	'copilot',
-	'sharp',
-	'node_modules',
-	'@img',
-	'sharp-wasm32',
-);
+const sharpWasmPackagePaths = [
+	// Nested layout: node_modules/n8n-nodes-copilot-agent/node_modules/@github/...
+	path.join(
+		__dirname,
+		'..',
+		'node_modules',
+		'@github',
+		'copilot',
+		'sharp',
+		'node_modules',
+		'@img',
+		'sharp-wasm32',
+	),
+	// Hoisted layout: node_modules/@github/... (common in npm install --prefix)
+	path.join(
+		__dirname,
+		'..',
+		'..',
+		'@github',
+		'copilot',
+		'sharp',
+		'node_modules',
+		'@img',
+		'sharp-wasm32',
+	),
+];
 
 const n8nDevCommandPath = path.join(
 	__dirname,
@@ -29,9 +44,20 @@ const pinnedN8nVersion = '2.15.0';
 const pinnedN8nArgs = `args: ['-y', '--color=always', '--prefer-online', 'n8n@${pinnedN8nVersion}'],`;
 const n8nArgsPattern = /args:\s*\['-y', '--color=always', '--prefer-online', 'n8n@[^']+'\],/;
 
-if (fs.existsSync(sharpWasmPackagePath)) {
+let removedSharpWasm = false;
+
+for (const sharpWasmPackagePath of sharpWasmPackagePaths) {
+	if (!fs.existsSync(sharpWasmPackagePath)) {
+		continue;
+	}
+
 	fs.rmSync(sharpWasmPackagePath, { recursive: true, force: true });
+	removedSharpWasm = true;
 	console.log(`Removed ${sharpWasmPackagePath} to avoid n8n loading nested *.node.js files as community nodes.`);
+}
+
+if (!removedSharpWasm) {
+	console.log('No sharp-wasm32 package path found to remove.');
 }
 
 if (!fs.existsSync(n8nDevCommandPath)) {
