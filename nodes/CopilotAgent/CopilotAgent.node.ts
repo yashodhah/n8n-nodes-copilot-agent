@@ -99,12 +99,13 @@ async function executeWithResumedSession(
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
-	let session: CopilotSession;
-	try {
-		session = await client.resumeSession(resumeSessionId, { onPermissionRequest: approveAll });
-	} catch {
-		session = await client.createSession({ model: model || 'gpt-5', onPermissionRequest: approveAll });
-	}
+	const session: CopilotSession = await (async () => {
+		try {
+			return await client.resumeSession(resumeSessionId, { onPermissionRequest: approveAll });
+		} catch {
+			return await client.createSession({ model: model || 'gpt-5', onPermissionRequest: approveAll });
+		}
+	})();
 
 	try {
 		for (let i = 0; i < items.length; i++) {
