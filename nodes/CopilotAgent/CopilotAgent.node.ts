@@ -31,6 +31,8 @@ interface CopilotClientExtended {
 	listModels?: () => Promise<CopilotModel[]>;
 }
 
+type CopilotSession = Awaited<ReturnType<CopilotClient['createSession']>>;
+
 function buildCopilotClientConfig(credentials: CredentialsWithAuth): CopilotClientConfig {
 	const config: CopilotClientConfig = {};
 
@@ -97,7 +99,7 @@ async function executeWithResumedSession(
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
-	let session;
+	let session: CopilotSession;
 	try {
 		session = await client.resumeSession(resumeSessionId, { onPermissionRequest: approveAll });
 	} catch {
@@ -164,7 +166,7 @@ async function executeIsolatedSession(
 			continue;
 		}
 
-		let session;
+		let session: CopilotSession | undefined;
 		try {
 			session = await client.createSession({
 				model: model || 'gpt-5',
@@ -246,7 +248,6 @@ export class CopilotAgent implements INodeType {
 				name: 'resumeSessionId',
 				type: 'string',
 				default: '',
-				required: false,
 				description:
 					'Optional session ID from a previous run. When provided, the node attempts to resume that session and reuses it for all items in the batch. If the session is not found or resumption fails, a new session is started automatically.',
 			},
@@ -343,21 +344,21 @@ export class CopilotAgent implements INodeType {
 		const client = new CopilotClient(config);
 
 		try {
-			await client.start();
-		} catch (error) {
-			if (credentials.cliUrl) {
+			try {
+				await client.start();
+			} catch (error) {
+				if (credentials.cliUrl) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Failed to connect to remote CLI server at ${credentials.cliUrl}: ${(error as Error).message}. When a CLI Server URL is configured, no subprocess fallback is attempted.`,
+					);
+				}
 				throw new NodeOperationError(
 					this.getNode(),
-					'Failed to connect to remote CLI server. When a CLI Server URL is configured, no subprocess fallback is attempted.',
+					`Failed to start local CLI subprocess: ${(error as Error).message}`,
 				);
 			}
-			throw new NodeOperationError(
-				this.getNode(),
-				`Failed to start local CLI subprocess: ${(error as Error).message}`,
-			);
-		}
 
-		try {
 			const returnData = resumeSessionId
 				? await executeWithResumedSession(this, client, items, model, resumeSessionId)
 				: await executeIsolatedSession(this, client, items, model);
