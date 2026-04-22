@@ -31,6 +31,8 @@ interface CopilotClientExtended {
 	listModels?: () => Promise<CopilotModel[]>;
 }
 
+type CopilotSession = Awaited<ReturnType<CopilotClient['createSession']>>;
+
 function buildCopilotClientConfig(credentials: CredentialsWithAuth): CopilotClientConfig {
 	const config: CopilotClientConfig = {};
 
@@ -88,18 +90,22 @@ async function getModelOptionsImpl(this: ILoadOptionsFunctions) {
 	];
 }
 
-async function executeSharedSession(
+async function executeWithResumedSession(
 	context: IExecuteFunctions,
 	client: CopilotClient,
 	items: INodeExecutionData[],
 	model: string,
+	resumeSessionId: string,
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
-	const session = await client.createSession({
-		model: model || 'gpt-5',
-		onPermissionRequest: approveAll,
-	});
+	const session: CopilotSession = await (async () => {
+		try {
+			return await client.resumeSession(resumeSessionId, { onPermissionRequest: approveAll });
+		} catch {
+			return await client.createSession({ model: model || 'gpt-5', onPermissionRequest: approveAll });
+		}
+	})();
 
 	try {
 		for (let i = 0; i < items.length; i++) {
@@ -161,7 +167,7 @@ async function executeIsolatedSession(
 			continue;
 		}
 
-		let session;
+		let session: CopilotSession | undefined;
 		try {
 			session = await client.createSession({
 				model: model || 'gpt-5',
@@ -239,12 +245,12 @@ export class CopilotAgent implements INodeType {
 				description: 'Message to send to Copilot',
 			},
 			{
-				displayName: 'Share Session Across Items',
-				name: 'shareSession',
-				type: 'boolean',
-				default: false,
+				displayName: 'Resume Session ID',
+				name: 'resumeSessionId',
+				type: 'string',
+				default: '',
 				description:
-					'Whether to share a single session across all items. When disabled (default), each item gets its own isolated session for predictable, independent results. When enabled, all items share one session and context carries forward across the batch.',
+					'Optional session ID from a previous run. When provided, the node attempts to resume that session and reuses it for all items in the batch. If the session is not found or resumption fails, a new session is started automatically.',
 			},
 		],
 		usableAsTool: true,
@@ -313,11 +319,11 @@ export class CopilotAgent implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 
-		let credentials;
+		let credentials: CredentialsWithAuth;
 		let config: CopilotClientConfig;
 
 		try {
-			credentials = await this.getCredentials('copilotAgentApi');
+			credentials = (await this.getCredentials('copilotAgentApi')) as CredentialsWithAuth;
 		} catch (error) {
 			throw new NodeOperationError(
 				this.getNode(),
@@ -326,7 +332,7 @@ export class CopilotAgent implements INodeType {
 		}
 
 		try {
-			config = buildCopilotClientConfig(credentials as CredentialsWithAuth);
+			config = buildCopilotClientConfig(credentials);
 		} catch (error) {
 			throw new NodeOperationError(
 				this.getNode(),
@@ -335,14 +341,27 @@ export class CopilotAgent implements INodeType {
 		}
 
 		const model = this.getNodeParameter('model', 0) as string;
-		const shareSession = this.getNodeParameter('shareSession', 0, false) as boolean;
+		const resumeSessionId = this.getNodeParameter('resumeSessionId', 0, '') as string;
 		const client = new CopilotClient(config);
 
 		try {
-			await client.start();
+			try {
+				await client.start();
+			} catch (error) {
+				if (credentials.cliUrl) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Failed to connect to remote CLI server at ${credentials.cliUrl}: ${(error as Error).message}. When a CLI Server URL is configured, no subprocess fallback is attempted.`,
+					);
+				}
+				throw new NodeOperationError(
+					this.getNode(),
+					`Failed to start local CLI subprocess: ${(error as Error).message}`,
+				);
+			}
 
-			const returnData = shareSession
-				? await executeSharedSession(this, client, items, model)
+			const returnData = resumeSessionId
+				? await executeWithResumedSession(this, client, items, model, resumeSessionId)
 				: await executeIsolatedSession(this, client, items, model);
 
 			return [returnData];
