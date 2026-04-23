@@ -1,13 +1,12 @@
 import { ApplicationError } from 'n8n-workflow';
+import type { CopilotClientOptions } from '@github/copilot-sdk';
 
-export interface CopilotClientConfig {
-	serverUrl?: string;
-	githubToken?: string;
-}
+export type CopilotClientConfig = Pick<CopilotClientOptions, 'cliUrl' | 'githubToken'>;
+export type AuthMode = 'pat' | 'server_authenticated';
 
 export interface CredentialsWithAuth {
 	cliUrl?: string;
-	authMode?: string;
+	authMode?: AuthMode | 'github_token' | 'server_token';
 	githubToken?: string;
 }
 
@@ -20,25 +19,39 @@ export interface CopilotClientExtended {
 	listModels?: () => Promise<CopilotModel[]>;
 }
 
+export function normalizeAuthMode(authMode?: CredentialsWithAuth['authMode']): AuthMode {
+	switch (authMode) {
+		case undefined:
+		case 'pat':
+		case 'github_token':
+			return 'pat';
+		case 'server_authenticated':
+		case 'server_token':
+			return 'server_authenticated';
+		default:
+			throw new ApplicationError(`Unknown authentication mode: ${authMode}`);
+	}
+}
+
 export function buildCopilotClientConfig(credentials: CredentialsWithAuth): CopilotClientConfig {
 	const config: CopilotClientConfig = {};
-
-	if (credentials.cliUrl) {
-		config.serverUrl = credentials.cliUrl;
-	}
-
-	const authMode = credentials.authMode ?? 'github_token';
+	const authMode = normalizeAuthMode(credentials.authMode);
 
 	switch (authMode) {
-		case 'github_token': {
+		case 'pat': {
 			if (!credentials.githubToken) {
-				throw new ApplicationError('GitHub token is required for GitHub Token auth mode');
+				throw new ApplicationError('GitHub token is required for PAT mode');
 			}
 			config.githubToken = credentials.githubToken;
 			break;
 		}
-		case 'server_token':
+		case 'server_authenticated': {
+			if (!credentials.cliUrl) {
+				throw new ApplicationError('CLI Server URL is required for Server Authenticated mode');
+			}
+			config.cliUrl = credentials.cliUrl;
 			break;
+		}
 		default: {
 			throw new ApplicationError(`Unknown authentication mode: ${authMode}`);
 		}

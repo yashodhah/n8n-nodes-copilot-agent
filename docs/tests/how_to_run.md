@@ -1,7 +1,7 @@
 
 ## Manual Two-Container Testing with Docker Compose
 
-This workflow uses Docker Compose to manage both containers, configure credentials in n8n, and validate both auth modes manually.
+This workflow uses Docker Compose to manage both containers, configure credentials in n8n, and validate both supported auth modes manually.
 
 ### Prerequisites
 
@@ -38,11 +38,11 @@ Expected output: `reachable`
 
 Open `http://localhost:5678` in your browser.
 
-### 5) Test auth mode A: Server Token (Shared Service Account)
+### 5) Test auth mode A: Server Authenticated
 
 In n8n credentials:
 
-- Authentication Mode: `server_token`
+- Authentication Mode: `server_authenticated`
 - CLI Server URL: `copilot-cli:8080`
 - GitHub token field: leave empty
 
@@ -52,12 +52,11 @@ Manual checks:
 2. Run one prompt like: `Reply exactly with OK`.
 3. Confirm output has `success: true` and a non-empty `response`.
 
-### 6) Test auth mode B: GitHub Token (Per-User) against the same remote CLI
+### 6) Test auth mode B: PAT
 
 In n8n credentials:
 
-- Authentication Mode: `github_token`
-- CLI Server URL: `copilot-cli:8080`
+- Authentication Mode: `pat`
 - GitHub Personal Access Token: your PAT
 
 Manual checks:
@@ -65,6 +64,7 @@ Manual checks:
 1. Open model dropdown in the Copilot Agent node.
 2. Run one prompt like: `Reply exactly with OK`.
 3. Confirm output has `success: true` and a non-empty `response`.
+4. Confirm the credential UI does not ask for a CLI Server URL in this mode.
 
 ### 7) Clean up
 
@@ -78,10 +78,10 @@ docker-compose down
   - Verify services are running: `docker-compose ps`
   - Verify URL is exactly `copilot-cli:8080`
   - Check CLI logs: `docker-compose logs copilot-cli`
-- `server_token` mode fails:
+- `server_authenticated` mode fails:
   - Ensure `GITHUB_TOKEN` env var is set before starting services
   - Restart services: `docker-compose restart copilot-cli`
-- `github_token` mode fails:
+- `pat` mode fails:
   - Ensure PAT is set in n8n credential and has Copilot access
 - Connection errors:
   - Verify both containers are on the same network: `docker network inspect docs_tests_copilot-test-net`

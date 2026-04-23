@@ -6,27 +6,29 @@ services:
     container_name: copilot-cli-server
     environment:
       GITHUB_TOKEN: ${GITHUB_TOKEN}
+    ports:
+      - "8080:8080"
     networks:
       - copilot-test-net
     restart: unless-stopped
 
-  n8n:
-    build:
-      context: ..
-      dockerfile: tests/Dockerfile.n8n-custom
-    image: n8n-copilot-custom:latest
-    container_name: n8n-copilot-test
-    environment:
-      N8N_LISTEN_ADDRESS: 0.0.0.0
-      N8N_PROTOCOL: http
-      N8N_SECURE_COOKIE: "false"
-    ports:
-      - "5678:5678"
-    networks:
-      - copilot-test-net
-    depends_on:
-      - copilot-cli
-    restart: unless-stopped
+  # n8n:
+  #   build:
+  #     context: ..
+  #     dockerfile: tests/Dockerfile.n8n-custom
+  #   image: n8n-copilot-custom:latest
+  #   container_name: n8n-copilot-test
+  #   environment:
+  #     N8N_LISTEN_ADDRESS: 0.0.0.0
+  #     N8N_PROTOCOL: http
+  #     N8N_SECURE_COOKIE: "false"
+  #   ports:
+  #     - "5678:5679"
+  #   networks:
+  #     - copilot-test-net
+  #   depends_on:
+  #     - copilot-cli
+  #   restart: unless-stopped
 
 networks:
   copilot-test-net:

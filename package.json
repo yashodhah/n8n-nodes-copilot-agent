@@ -34,7 +34,7 @@
     "prepublishOnly": "n8n-node prerelease"
   },
   "main": "dist/index.js",
-  "files": ["dist"],
+  "files": ["dist", "scripts/postinstall.js"],
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": false,

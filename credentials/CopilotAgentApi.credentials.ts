@@ -9,31 +9,22 @@ export class CopilotAgentApi implements ICredentialType {
 	testedBy = 'testCopilotApiCredentials';
 	properties: INodeProperties[] = [
 		{
-			displayName: 'CLI Server URL',
-			name: 'cliUrl',
-			type: 'string',
-			default: '',
-			required: false,
-			description:
-				'Optional: Remote CLI server address (e.g., "localhost:8080"). Leave empty to spawn CLI locally. Warning: TCP connection is unauthenticated—must be secured at network level (VPC, private network, or same Docker network). Never expose publicly.',
-		},
-		{
 			displayName: 'Authentication Mode',
 			name: 'authMode',
 			type: 'options',
-			default: 'github_token',
+			default: 'pat',
 			required: true,
 			options: [
 				{
-					name: 'GitHub Token (Per-User)',
-					value: 'github_token',
-					description: 'Use a personal GitHub PAT. Token is passed per-request.',
+					name: 'PAT',
+					value: 'pat',
+					description: 'Use a local Copilot CLI subprocess with a GitHub Personal Access Token.',
 				},
 				{
-					name: 'Server Token (Shared Service Account)',
-					value: 'server_token',
+					name: 'Server Authenticated',
+					value: 'server_authenticated',
 					description:
-						'Connect to CLI server with its own environment-provided token. No credentials needed.',
+						'Connect to an already authenticated remote CLI server using only its server URL.',
 				},
 			],
 		},
@@ -45,10 +36,24 @@ export class CopilotAgentApi implements ICredentialType {
 			default: '',
 			required: true,
 			description:
-				'A GitHub Personal Access Token (classic or fine-grained) with Copilot access. Generate one at https://github.com/settings/tokens',
+				'A GitHub Personal Access Token (classic or fine-grained) with Copilot access for the local CLI subprocess. Generate one at https://github.com/settings/tokens',
 			displayOptions: {
 				show: {
-					authMode: ['github_token'],
+					authMode: ['pat'],
+				},
+			},
+		},
+		{
+			displayName: 'CLI Server URL',
+			name: 'cliUrl',
+			type: 'string',
+			default: '',
+			required: true,
+			description:
+				'Remote CLI server address (e.g., "localhost:8080"). The remote server must already manage its own authentication. Warning: TCP connection is unauthenticated—must be secured at network level (VPC, private network, or same Docker network). Never expose publicly.',
+			displayOptions: {
+				show: {
+					authMode: ['server_authenticated'],
 				},
 			},
 		},

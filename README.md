@@ -43,18 +43,18 @@ npm run build
 
 The node supports two authentication modes. Choose the one that fits your deployment:
 
-### 1. GitHub Token (Per-User)
+### 1. PAT
 
 **Best for:** Small teams, per-user billing, individual Copilot subscriptions
 
-The most straightforward option. Each user provides their own GitHub Personal Access Token.
+The local CLI subprocess is started by the node, and each user provides their own GitHub Personal Access Token.
 
 **Setup:**
 1. Go to https://github.com/settings/tokens
 2. Generate a new Personal Access Token (classic or fine-grained) with `copilot` scope
-3. In the credential, select **Authentication Mode** → "GitHub Token (Per-User)"
+3. In the credential, select **Authentication Mode** → "PAT"
 4. Paste your token in the "GitHub Personal Access Token" field
-5. Leave "CLI Server URL" empty to spawn CLI locally (default)
+5. The node spawns the local CLI subprocess automatically
 
 **Required token scopes:**
 - `copilot` — access Copilot chat completions
@@ -68,11 +68,11 @@ The most straightforward option. Each user provides their own GitHub Personal Ac
 - Token stored in n8n (requires secure credential storage)
 - Not suitable for large-scale shared deployments
 
-### 2. Server Token (Shared Service Account)
+### 2. Server Authenticated
 
 **Best for:** Self-hosted n8n, shared deployments, service accounts
 
-Connect to a remote or local CLI server that already has an API token in its environment. No credentials are passed—the server's token is used automatically.
+Connect to a remote CLI server that already has an API token in its environment. No PAT is stored in or passed from n8n.
 
 **Setup:**
 1. Start a Copilot CLI server with a token in the environment:
@@ -80,9 +80,9 @@ Connect to a remote or local CLI server that already has an API token in its env
    export GITHUB_TOKEN=your_token_here
    copilot-cli --server 0.0.0.0:8080
    ```
-2. In the credential, select **Authentication Mode** → "Server Token (Shared Service Account)"
+2. In the credential, select **Authentication Mode** → "Server Authenticated"
 3. Set "CLI Server URL" to your server address (e.g., `localhost:8080` or `copilot-server:8080`)
-4. No other fields need to be filled
+4. No token field is shown or required
 5. The node connects and the server's environment token is used
 
 **Pros:**
@@ -99,7 +99,7 @@ Connect to a remote or local CLI server that already has an API token in its env
 
 ### Local CLI (Default)
 
-When you leave **CLI Server URL** empty, the node spawns a local Copilot CLI subprocess automatically. This is the default and simplest option.
+When you choose **PAT**, the node spawns a local Copilot CLI subprocess automatically.
 
 **Use for:**
 - Local development
@@ -108,7 +108,7 @@ When you leave **CLI Server URL** empty, the node spawns a local Copilot CLI sub
 
 ### Remote CLI Server
 
-Set **CLI Server URL** to connect to a remote CLI server instead. Useful for scaled deployments.
+When you choose **Server Authenticated**, set **CLI Server URL** to connect to a remote CLI server instead.
 
 **Use for:**
 - Self-hosted n8n with multiple workers
@@ -159,16 +159,15 @@ Then set **CLI Server URL** to `copilot-server:8080` (or your server's address).
 ### Example 1: Local GitHub Token
 ```json
 {
-  "authMode": "github_token",
-  "githubToken": "github_pat_xxxxxxxxxxxx",
-  "cliUrl": ""
+   "authMode": "pat",
+   "githubToken": "github_pat_xxxxxxxxxxxx"
 }
 ```
 
 ### Example 2: Remote Service Account
 ```json
 {
-  "authMode": "server_token",
+   "authMode": "server_authenticated",
   "cliUrl": "copilot-server:8080"
 }
 ```
@@ -228,9 +227,13 @@ This runs lint, build, prompts for a version bump, updates the changelog, commit
 
 ## Troubleshooting
 
-### "GitHub token is required for GitHub Token auth mode"
-- Check that you've selected "GitHub Token (Per-User)" auth mode and provided a token
+### "GitHub token is required for PAT mode"
+- Check that you've selected "PAT" auth mode and provided a token
 - Verify the token has `copilot` scope at https://github.com/settings/tokens
+
+### "CLI Server URL is required for Server Authenticated mode"
+- Check that you've selected "Server Authenticated" auth mode and provided a `host:port` value
+- Ensure you are pointing to a running remote CLI server
 
 ### "Failed to retrieve credentials"
 - Ensure the credential is saved and attached to the node
