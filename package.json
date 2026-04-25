@@ -35,7 +35,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": false,
-    "credentials": ["dist/credentials/CopilotAuth.credentials.js"],
+    "credentials": ["dist/credentials/CopilotAgentApi.credentials.js"],
     "nodes": ["dist/nodes/CopilotAgent/CopilotAgent.node.js"]
   },
   "dependencies": { "@github/copilot-sdk": "0.2.2" },

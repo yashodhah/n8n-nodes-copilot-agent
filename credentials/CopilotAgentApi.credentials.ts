@@ -1,8 +1,8 @@
 import type { Icon, ICredentialType, INodeProperties } from 'n8n-workflow';
 
-export class CopilotAgent implements ICredentialType {
-	name = 'copilotAuth';
-	displayName = 'GitHub Copilot SDK';
+export class CopilotAgentApi implements ICredentialType {
+	name = 'copilotAuthApi';
+	displayName = 'GitHub Copilot SDK API';
 	icon: Icon = 'file:CopilotAgentApi.svg';
 	documentationUrl =
 		'https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens';

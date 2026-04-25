@@ -29,7 +29,7 @@ export class CopilotAgent implements INodeType {
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
-				name: 'copilotAuth',
+				name: 'copilotAuthApi',
 				required: true,
 				testedBy: 'testCopilotAuth',
 			},
