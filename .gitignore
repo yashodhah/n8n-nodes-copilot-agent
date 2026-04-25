@@ -1,3 +1,15 @@
 dist
 node_modules
+
+# Environment files (secrets)
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+npm-debug.log*

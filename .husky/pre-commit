@@ -1,0 +1,74 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Secret scanning pre-commit hook
+# Checks for common secret patterns before allowing commit
+
+echo "Running secret scan..."
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "✓ No staged files to scan"
+  exit 0
+fi
+
+# Scan each staged file
+SECRET_FOUND=0
+for file in $STAGED_FILES; do
+  # Skip if file doesn't exist (deleted file)
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+
+  # Skip binary files and check for secrets
+  if file "$file" | grep -q "text"; then
+    # Check for GitHub tokens
+    if grep -qE "github_pat_[a-zA-Z0-9_]{50,}|ghp_[a-zA-Z0-9]{30,}|gho_[a-zA-Z0-9]{30,}|ghu_[a-zA-Z0-9]{30,}|ghs_[a-zA-Z0-9]{30,}|ghr_[a-zA-Z0-9]{30,}" "$file" 2>/dev/null; then
+      echo "✗ Potential GitHub token detected in: $file"
+      SECRET_FOUND=1
+    fi
+
+    # Check for AWS keys
+    if grep -qE "AKIA[0-9A-Z]{16}" "$file" 2>/dev/null; then
+      echo "✗ Potential AWS key detected in: $file"
+      SECRET_FOUND=1
+    fi
+
+    # Check for private keys
+    if grep -qE "-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY" "$file" 2>/dev/null; then
+      echo "✗ Potential private key detected in: $file"
+      SECRET_FOUND=1
+    fi
+
+    # Check for generic API keys/secrets (be careful with false positives)
+    if grep -qE "['\"]?(api[_-]?key|secret[_-]?key)['\"]?\s*[:=]\s*['\"][^'\"]{20,}['\"]" "$file" 2>/dev/null; then
+      # Skip .env.sample files
+      case "$file" in
+        *.sample|*.example)
+          ;;
+        *)
+          echo "✗ Potential API key/secret detected in: $file"
+          SECRET_FOUND=1
+          ;;
+      esac
+    fi
+  fi
+done
+
+if [ $SECRET_FOUND -eq 1 ]; then
+  echo ""
+  echo "❌ Commit blocked: Potential secrets detected!"
+  echo "Please remove sensitive data before committing."
+  echo ""
+  echo "If this is a false positive, you can:"
+  echo "1. Use .gitignore to exclude the file"
+  echo "2. Use .env.sample or .env.example pattern for example files"
+  echo "3. Contact security team if unsure"
+  echo ""
+  exit 1
+fi
+
+echo "✓ No secrets detected"
+exit 0
