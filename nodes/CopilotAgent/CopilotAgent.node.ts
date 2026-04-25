@@ -12,7 +12,7 @@ import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { CopilotClient } from '@github/copilot-sdk';
 import { buildCopilotClientConfig, type CredentialsWithAuth, type CopilotClientConfig } from './config';
 import { executeSharedSession, executeIsolatedSession } from './session';
-import { getModelOptionsImpl, testCopilotApiCredentials } from './methods';
+import { getModelOptionsImpl, testCopilotAuth } from './methods';
 
 export class CopilotAgent implements INodeType {
 	description: INodeTypeDescription = {
@@ -29,9 +29,9 @@ export class CopilotAgent implements INodeType {
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
-				name: 'copilotAgentApi',
+				name: 'copilotAuth',
 				required: true,
-				testedBy: 'testCopilotApiCredentials',
+				testedBy: 'testCopilotAuth',
 			},
 		],
 		properties: [
@@ -74,11 +74,11 @@ export class CopilotAgent implements INodeType {
 			},
 		},
 		credentialTest: {
-			async testCopilotApiCredentials(
+			async testCopilotAuth(
 				this: ICredentialTestFunctions,
 				credential: ICredentialsDecrypted,
 			): Promise<INodeCredentialTestResult> {
-				return testCopilotApiCredentials(credential);
+				return testCopilotAuth(credential);
 			},
 		},
 	};
@@ -90,7 +90,7 @@ export class CopilotAgent implements INodeType {
 		let config: CopilotClientConfig;
 
 		try {
-			credentials = await this.getCredentials('copilotAgentApi');
+			credentials = await this.getCredentials('copilotAuth');
 		} catch (error) {
 			throw new NodeOperationError(
 				this.getNode(),

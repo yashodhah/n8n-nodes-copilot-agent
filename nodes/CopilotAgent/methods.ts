@@ -28,7 +28,7 @@ function buildModelOptionsCacheKey(credentials: CredentialsWithAuth): string {
 
 export async function getModelOptionsImpl(this: ILoadOptionsFunctions) {
 	try {
-		const credentials = await this.getCredentials('copilotAgentApi');
+		const credentials = await this.getCredentials('copilotAuth');
 		const typedCredentials = credentials as CredentialsWithAuth;
 		const cacheKey = buildModelOptionsCacheKey(typedCredentials);
 		const cachedOptions = modelOptionsCache.get(cacheKey);
@@ -89,7 +89,7 @@ export async function getModelOptionsImpl(this: ILoadOptionsFunctions) {
 	];
 }
 
-export async function testCopilotApiCredentials(
+export async function testCopilotAuth(
 	credential: ICredentialsDecrypted,
 ): Promise<INodeCredentialTestResult> {
 	const credentials = credential.data as CredentialsWithAuth;

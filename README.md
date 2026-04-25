@@ -14,6 +14,14 @@ A custom n8n node that integrates GitHub Copilot and other LLMs into your n8n wo
 - **Multiple Models** - Support for GPT-5, Claude Sonnet 4.5, GPT-4.1, and more
 - **AI Tool Compatible** - Use as a tool within n8n Agent nodes
 
+## Requirements
+
+- **n8n**: v2.16.0 or compatible
+- **GitHub Copilot SDK**: v0.2.2 (included as dependency)
+- **Node.js**: v18 or later
+- **npm**: v9 or later
+- **GitHub Copilot Subscription**: Required for API access (via PAT or server token)
+
 ## Installation
 
 Install the node via npm in your n8n instance:
@@ -199,6 +207,13 @@ The **Share Session Across Items** toggle controls how sessions are managed acro
 **Shared session:** All items in the batch are sent to the same session in order. The model sees the full conversation history as context builds up. Use this for multi-turn workflows (e.g., summarize → critique → rewrite).
 
 ## Development
+
+### Development Environment
+
+- **TypeScript**: 5.9.3 (strict mode)
+- **ESLint**: 9.39.4
+- **Prettier**: 3.8.1
+- **n8n Node CLI**: Latest (`@n8n/node-cli`)
 
 ### Build
 ```bash
