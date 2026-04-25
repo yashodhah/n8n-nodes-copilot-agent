@@ -252,6 +252,58 @@ This runs lint, build, prompts for a version bump, updates the changelog, commit
 - Ensure your prompt is not empty — the node returns an error item for empty prompts
 - Try a simpler prompt to rule out model-side issues
 
+## Security Best Practices
+
+### Managing Secrets Safely
+
+This repository uses multiple layers of protection to prevent credential leaks:
+
+1. **Secret Scanning in CI**: Every push and pull request is automatically scanned for secrets using TruffleHog. Commits containing verified secrets will fail the CI check.
+
+2. **Pre-commit Hooks**: Local git hooks scan for common secret patterns before allowing commits. This catches secrets before they reach the remote repository.
+
+3. **.gitignore Protection**: Environment files (`.env`, `*.pem`, `*.key`) are automatically excluded from git.
+
+### How to Add Secrets Safely
+
+**DO:**
+- Use `.env` files for local development (already in .gitignore)
+- Use `.env.sample` or `.env.example` files to document required variables (with placeholder values, never real secrets)
+- Store production secrets in secure credential managers (n8n credentials, GitHub Secrets, AWS Secrets Manager, etc.)
+- Use environment variables for CI/CD pipelines
+
+**DON'T:**
+- Never commit real tokens, API keys, or passwords to git
+- Never include secrets in code comments or documentation
+- Never commit private keys or certificates
+
+### Example: Adding a New Environment Variable
+
+```bash
+# 1. Add to .env (already ignored by git)
+echo "GITHUB_TOKEN=your_real_token_here" >> .env
+
+# 2. Create .env.sample with placeholder (safe to commit)
+echo "GITHUB_TOKEN=your_github_token_here" >> .env.sample
+
+# 3. Document in README what the variable is for
+```
+
+### If You Accidentally Commit a Secret
+
+If you accidentally commit a secret:
+
+1. **Immediately rotate/revoke** the exposed credential
+2. Remove the secret from git history:
+   ```bash
+   git filter-repo --path <file-with-secret> --invert-paths
+   # or use BFG Repo-Cleaner
+   ```
+3. Report to your security team if required by your organization's policies
+4. Push the cleaned history: `git push --force`
+
+⚠️ **Note**: Force-pushing rewrites history and can affect other collaborators.
+
 ## Contributing
 
 Contributions are welcome! To contribute:

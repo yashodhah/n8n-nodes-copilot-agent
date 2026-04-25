@@ -30,7 +30,8 @@
     "predev": "node scripts/postinstall.js",
     "predev:external": "node scripts/postinstall.js",
     "release": "n8n-node release",
-    "prepublishOnly": "n8n-node prerelease"
+    "prepublishOnly": "n8n-node prerelease",
+    "prepare": "husky || true"
   },
   "main": "dist/index.js",
   "files": ["dist", "scripts/postinstall.js"],
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@n8n/node-cli": "*",
     "eslint": "9.39.4",
+    "husky": "^9.0.11",
     "prettier": "3.8.1",
     "release-it": "19.2.4",
     "typescript": "5.9.3"
