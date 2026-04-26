@@ -119,6 +119,14 @@ export class CopilotAgent implements INodeType {
 				: await executeIsolatedSession(this, client, items, model);
 
 			return [returnData];
+		} catch (error) {
+			if (this.continueOnFail()) {
+				return [items.map((_item, i) => ({
+					json: { error: (error as Error).message },
+					pairedItem: { item: i },
+				}))];
+			}
+			throw error;
 		} finally {
 			await client.stop();
 		}
