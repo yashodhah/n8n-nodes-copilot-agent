@@ -42,6 +42,9 @@
     "dist",
     "scripts/postinstall.js"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": false,

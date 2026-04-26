@@ -90,6 +90,7 @@ jobs:
       - name: Release
         run: |
           [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm config set access public
           VERSION=$(node -e "console.log(require('./package.json').version)")
           if [[ $VERSION == *"-"* ]]; then
             npm config set tag prerelease
