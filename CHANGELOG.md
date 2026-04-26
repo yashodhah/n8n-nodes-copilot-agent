@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0-beta.1] - 2026-04-26
 
 ### Added
-- Initial development version
-- Basic `CopilotAgent` node structure using `@github/copilot-sdk` v0.2.2
-- Support for local CLI process and remote CLI
+- CopilotAgent n8n node powered by `@github/copilot-sdk`
+- PAT and server-authenticated credential modes
+- Local and remote CLI support
+- Shared and isolated session execution
