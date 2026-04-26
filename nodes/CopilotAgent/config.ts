@@ -6,7 +6,7 @@ export type AuthMode = 'pat' | 'server_authenticated';
 
 export interface CredentialsWithAuth {
 	cliUrl?: string;
-	authMode?: AuthMode | 'github_token' | 'server_token';
+	authMode?: AuthMode;
 	githubToken?: string;
 }
 
@@ -23,10 +23,8 @@ export function normalizeAuthMode(authMode?: CredentialsWithAuth['authMode']): A
 	switch (authMode) {
 		case undefined:
 		case 'pat':
-		case 'github_token':
 			return 'pat';
 		case 'server_authenticated':
-		case 'server_token':
 			return 'server_authenticated';
 		default:
 			throw new ApplicationError(`Unknown authentication mode: ${authMode}`);

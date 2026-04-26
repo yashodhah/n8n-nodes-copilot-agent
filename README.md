@@ -267,8 +267,6 @@ This runs lint, build, prompts for a version bump, updates the changelog, commit
 - Ensure your prompt is not empty — the node returns an error item for empty prompts
 - Try a simpler prompt to rule out model-side issues
 
-## Security Best Practices
-
 ### Managing Secrets Safely
 
 This repository uses multiple layers of protection to prevent credential leaks:

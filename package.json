@@ -13,7 +13,10 @@
     "automation",
     "workflow"
   ],
-  "author": { "name": "yashodhah", "email": "dev.h.yashodha@gmail.com" },
+  "author": {
+    "name": "yashodhah",
+    "email": "dev.h.yashodha@gmail.com"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/yashodhah/copilot-agent.git"
@@ -25,6 +28,9 @@
     "dev:external": "n8n-node dev --external-n8n",
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "predev": "node scripts/postinstall.js",
     "predev:external": "node scripts/postinstall.js",
     "release": "n8n-node release",
@@ -32,21 +38,35 @@
     "prepare": "husky || true"
   },
   "main": "dist/index.js",
-  "files": ["dist", "scripts/postinstall.js"],
+  "files": [
+    "dist",
+    "scripts/postinstall.js"
+  ],
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": false,
-    "credentials": ["dist/credentials/CopilotAgentApi.credentials.js"],
-    "nodes": ["dist/nodes/CopilotAgent/CopilotAgent.node.js"]
+		"credentials": [
+		  "dist/credentials/CopilotAgentApi.credentials.js"
+		],
+    "nodes": [
+      "dist/nodes/CopilotAgent/CopilotAgent.node.js"
+    ]
   },
-  "dependencies": { "@github/copilot-sdk": "0.2.2" },
+  "dependencies": {
+    "@github/copilot-sdk": "0.2.2"
+  },
   "devDependencies": {
     "@n8n/node-cli": "*",
+    "@types/jest": "^30.0.0",
     "eslint": "9.39.4",
     "husky": "^9.0.11",
+    "jest": "^30.3.0",
     "prettier": "3.8.1",
     "release-it": "19.2.4",
+    "ts-jest": "^29.4.9",
     "typescript": "5.9.3"
   },
-  "peerDependencies": { "n8n-workflow": "2.16.0" }
+  "peerDependencies": {
+    "n8n-workflow": "2.16.0"
+  }
 }

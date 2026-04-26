@@ -29,9 +29,9 @@ export class CopilotAgent implements INodeType {
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
-				name: 'copilotAuthApi',
+				name: 'copilotAgentApi',
 				required: true,
-				testedBy: 'testCopilotAuth',
+				testedBy: 'credentialTest.testCopilotAuth',
 			},
 		],
 		properties: [
@@ -50,7 +50,7 @@ export class CopilotAgent implements INodeType {
 				displayName: 'Prompt',
 				name: 'prompt',
 				type: 'string',
-				typeOptions: { rows: 4 },
+				typeOptions: { rows: 10 },
 				default: '',
 				required: true,
 				description: 'Message to send to Copilot',
@@ -90,7 +90,7 @@ export class CopilotAgent implements INodeType {
 		let config: CopilotClientConfig;
 
 		try {
-			credentials = await this.getCredentials('copilotAuth');
+			credentials = await this.getCredentials('copilotAgentApi');
 		} catch (error) {
 			throw new NodeOperationError(
 				this.getNode(),

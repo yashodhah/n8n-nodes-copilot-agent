@@ -1,12 +1,11 @@
 import type { Icon, ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class CopilotAgentApi implements ICredentialType {
-	name = 'copilotAuthApi';
-	displayName = 'GitHub Copilot SDK API';
+	name = 'copilotAgentApi';
+	displayName = 'GitHub Copilot Agent Credentials';
 	icon: Icon = 'file:CopilotAgentApi.svg';
 	documentationUrl =
 		'https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens';
-	testedBy = 'testCopilotAuth';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Authentication Mode',
