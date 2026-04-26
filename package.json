@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-copilot-agent",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.3",
   "description": "n8n community node for GitHub Copilot via the @github/copilot-sdk",
   "license": "MIT",
   "homepage": "https://github.com/yashodhah/copilot-agent#readme",
