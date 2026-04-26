@@ -92,9 +92,8 @@ jobs:
           [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
           VERSION=$(node -e "console.log(require('./package.json').version)")
           if [[ $VERSION == *"-"* ]]; then
-            npm run release -- --tag prerelease
-          else
-            npm run release
+            npm config set tag prerelease
           fi
+          npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
