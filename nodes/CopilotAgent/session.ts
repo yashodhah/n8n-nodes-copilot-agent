@@ -1,17 +1,33 @@
 import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { CopilotClient, approveAll } from '@github/copilot-sdk';
+import type { PermissionHandler } from '@github/copilot-sdk';
+
+export type PermissionMode = 'approveAll' | 'denyShell' | 'readOnly';
+
+export function buildPermissionHandler(mode: PermissionMode): PermissionHandler {
+	if (mode === 'approveAll') return approveAll;
+	if (mode === 'denyShell')
+		return (req) =>
+			req.kind === 'shell'
+				? { kind: 'denied-interactively-by-user' }
+				: { kind: 'approved' };
+	// readOnly
+	return (req) =>
+		req.kind === 'read' ? { kind: 'approved' } : { kind: 'denied-interactively-by-user' };
+}
 
 export async function executeSharedSession(
 	context: IExecuteFunctions,
 	client: CopilotClient,
 	items: INodeExecutionData[],
 	model: string,
+	permissionMode: PermissionMode = 'approveAll',
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
 	const session = await client.createSession({
 		model: model || 'gpt-5',
-		onPermissionRequest: approveAll,
+		onPermissionRequest: buildPermissionHandler(permissionMode),
 	});
 
 	try {
@@ -60,6 +76,7 @@ export async function executeIsolatedSession(
 	client: CopilotClient,
 	items: INodeExecutionData[],
 	model: string,
+	permissionMode: PermissionMode = 'approveAll',
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
 
@@ -78,7 +95,7 @@ export async function executeIsolatedSession(
 		try {
 			session = await client.createSession({
 				model: model || 'gpt-5',
-				onPermissionRequest: approveAll,
+				onPermissionRequest: buildPermissionHandler(permissionMode),
 			});
 
 			const result = await session.sendAndWait({ prompt });

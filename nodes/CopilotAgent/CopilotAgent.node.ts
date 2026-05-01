@@ -11,7 +11,7 @@ import type {
 import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { CopilotClient } from '@github/copilot-sdk';
 import { buildCopilotClientConfig, type CredentialsWithAuth, type CopilotClientConfig } from './config';
-import { executeSharedSession, executeIsolatedSession } from './session';
+import { executeSharedSession, executeIsolatedSession, type PermissionMode } from './session';
 import { getModelOptionsImpl, testCopilotAuth } from './methods';
 
 export class CopilotAgent implements INodeType {
@@ -63,6 +63,43 @@ export class CopilotAgent implements INodeType {
 				description:
 					'Whether to share a single session across all items. When disabled (default), each item gets its own isolated session for predictable, independent results. When enabled, all items share one session and context carries forward across the batch.',
 			},
+			{
+				displayName: 'Additional Fields',
+				name: 'additionalFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				options: [
+					{
+						displayName: 'Permission Mode',
+						name: 'permissionMode',
+						type: 'options',
+						default: 'approveAll',
+						description:
+							'Controls which tool requests the agent is allowed to execute. Use <strong>Approve All</strong> for trusted local automation, <strong>Deny Shell</strong> to block shell commands while allowing file and network operations, or <strong>Read Only</strong> to restrict the agent to read-only operations only.',
+						options: [
+							{
+								name: 'Approve All',
+								value: 'approveAll',
+								description:
+									'Approve every tool request — current default behaviour. Suitable for trusted local automation and development.',
+							},
+							{
+								name: 'Deny Shell',
+								value: 'denyShell',
+								description:
+									'Approve all tool requests except shell commands. Suitable for file-reading agents where shell execution is unexpected.',
+							},
+							{
+								name: 'Read Only',
+								value: 'readOnly',
+								description:
+									'Approve only read operations; deny everything else. Suitable for analysis-only agents and safe handling of untrusted prompts.',
+							},
+						],
+					},
+				],
+			},
 		],
 		usableAsTool: true,
 	};
@@ -109,14 +146,18 @@ export class CopilotAgent implements INodeType {
 
 		const model = this.getNodeParameter('model', 0) as string;
 		const shareSession = this.getNodeParameter('shareSession', 0, false) as boolean;
+		const additionalFields = this.getNodeParameter('additionalFields', 0, {}) as {
+			permissionMode?: PermissionMode;
+		};
+		const permissionMode: PermissionMode = additionalFields.permissionMode ?? 'approveAll';
 		const client = new CopilotClient(config);
 
 		try {
 			await client.start();
 
 			const returnData = shareSession
-				? await executeSharedSession(this, client, items, model)
-				: await executeIsolatedSession(this, client, items, model);
+				? await executeSharedSession(this, client, items, model, permissionMode)
+				: await executeIsolatedSession(this, client, items, model, permissionMode);
 
 			return [returnData];
 		} catch (error) {
